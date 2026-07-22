@@ -1,0 +1,41 @@
+def get_project_scope(project_name):
+
+    url = f"{BASE_URL}/_apis/IdentityPicker/Identities"
+
+    payload = {
+        "query": project_name,
+        "identityTypes": ["group"],
+        "operationScopes": ["ims"],
+        "filterByAncestorEntityIds": [],
+        "filterByEntityIds": [],
+        "options": {
+            "MinResults": 10,
+            "MaxResults": 10
+        },
+        "properties": [
+            "DisplayName"
+        ]
+    }
+
+    r = requests.post(
+        url,
+        headers=HEADERS,
+        json=payload,
+        verify=False
+    )
+
+    if r.status_code != 200:
+        print(r.text)
+        return None
+
+    data = r.json()
+
+    identities = data["results"][0]["identities"]
+
+    for i in identities:
+
+        if project_name.lower() in i["displayName"].lower():
+
+            return i["localId"]
+
+    return None
