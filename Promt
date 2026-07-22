@@ -1,0 +1,89 @@
+I need a complete Python automation script and Azure DevOps pipeline to add one or more users to an Azure DevOps project group in Azure DevOps Server (On-Premises).
+Requirements
+Language: Python 3
+Authentication: Personal Access Token (PAT)
+The script should work with Azure DevOps Server (On-Prem).
+Accept command-line arguments:
+--url
+--pat
+--project
+--group
+--psids (single or comma-separated PSIDs)
+Workflow
+Search the user by PSID using:
+POST
+/_apis/IdentityPicker/Identities
+Payload:
+{
+  "query": "<PSID>",
+  "identityTypes": ["user"],
+  "operationScopes": ["ims", "ad", "vmd"],
+  "options": {
+    "MinResults": 10,
+    "MaxResults": 10
+  }
+}
+Extract:
+TeamFoundationId
+DisplayName
+Search the project group using the same API:
+POST
+/_apis/IdentityPicker/Identities
+Payload:
+{
+  "query": "<Group Name>",
+  "identityTypes": ["group", "team"],
+  "operationScopes": ["ims", "ad", "vmd"],
+  "options": {
+    "MinResults": 10,
+    "MaxResults": 10
+  }
+}
+Extract:
+TeamFoundationId of the group
+FriendlyDisplayName
+DisplayName
+Add the user to the group using the same endpoint used by the Azure DevOps web UI:
+POST
+/_api/_identity/AddIdentities
+Payload:
+{
+  "newUsersJson": "[]",
+  "existingUsersJson": "[\"<User TeamFoundationId>\"]",
+  "groupsToJoinJson": "[\"<Group TeamFoundationId>\"]",
+  "aadGroupsJson": "[]"
+}
+The implementation should match the browser's Network calls exactly.
+Additional requirements
+Support multiple PSIDs.
+Skip users already in the group.
+Handle API errors gracefully.
+Retry transient failures.
+Log every request and response.
+Generate a CSV report with:
+PSID
+User Name
+Group Name
+Status (Added/Already Exists/Failed)
+Error Message
+Create detailed console logs.
+Create a README explaining usage.
+Use modular functions:
+search_user()
+search_group()
+add_user_to_group()
+Use only the requests library.
+Azure DevOps Pipeline
+Also create an azure-pipelines.yml that:
+Uses Python 3.x
+Installs dependencies
+Accepts pipeline parameters:
+URL
+PAT (secret variable)
+Project
+Group
+PSIDs
+Executes the Python script
+Publishes the generated CSV report as a pipeline artifact
+Fails the pipeline if any user could not be added.
+Generate production-quality code with comments and error handling. Use the same REST APIs and payloads that the Azure DevOps web portal uses.
