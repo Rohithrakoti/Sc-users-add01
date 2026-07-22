@@ -1,0 +1,20 @@
+def add_user(group_id,user_id):
+
+    url=f"{BASE_URL}/_api/_identity/AddIdentities?_v=5"
+
+    payload={
+        "existingUsersJson":json.dumps([user_id]),
+        "groupsToJoinJson":json.dumps([group_id]),
+        "newUsersJson":"[]",
+        "aadGroupsJson":"[]"
+    }
+
+    r=requests.post(
+        url,
+        headers=HEADERS,
+        data=payload,
+        verify=False
+    )
+
+    print(r.status_code)
+    print(r.text)
