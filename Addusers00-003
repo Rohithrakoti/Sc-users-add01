@@ -1,0 +1,44 @@
+def get_group(project_name, group_name):
+
+    scope = get_project_scope(project_name)
+
+    if scope is None:
+
+        print("Unable to find project scope")
+
+        return None
+
+    print("Scope :", scope)
+
+    url = f"{BASE_URL}/_api/_identity/ReadScopedApplicationGroupsJson"
+
+    params = {
+        "_v": 5,
+        "scope": scope,
+        "readMembers": "false"
+    }
+
+    r = requests.get(
+        url,
+        headers=HEADERS,
+        params=params,
+        verify=False
+    )
+
+    print(r.status_code)
+
+    data = r.json()
+
+    groups = data["identities"]
+
+    for g in groups:
+
+        print(g["FriendlyDisplayName"])
+
+        if group_name.lower() in g["FriendlyDisplayName"].lower():
+
+            print("Found Group")
+
+            return g["TeamFoundationId"]
+
+    return None
