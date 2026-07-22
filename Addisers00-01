@@ -1,0 +1,147 @@
+import argparse
+import base64
+import csv
+import json
+import requests
+import urllib3
+
+urllib3.disable_warnings()
+
+parser = argparse.ArgumentParser()
+
+parser.add_argument("--url", required=True)
+parser.add_argument("--pat", required=True)
+parser.add_argument("--project", required=True)
+parser.add_argument("--group", required=True)
+parser.add_argument("--psids", required=True)
+
+args = parser.parse_args()
+
+BASE_URL = args.url.rstrip("/")
+
+token = base64.b64encode(f":{args.pat}".encode()).decode()
+
+HEADERS = {
+    "Authorization": f"Basic {token}",
+    "User-Agent": "Mozilla/5.0"
+}
+
+
+def search_user(psid):
+
+    print(f"\nSearching user : {psid}")
+
+    url = f"{BASE_URL}/_apis/IdentityPicker/Identities"
+
+    payload = {
+        "query": psid,
+        "identityTypes": [
+            "user",
+            "group"
+        ],
+        "operationScopes": [
+            "ims",
+            "ad",
+            "vmd"
+        ],
+        "filterByAncestorEntityIds": [],
+        "filterByEntityIds": [],
+        "options": {
+            "MinResults": 40,
+            "MaxResults": 40
+        },
+        "properties": [
+            "DisplayName",
+            "ScopeName",
+            "SamAccountName",
+            "Active",
+            "SubjectDescriptor",
+            "Department"
+        ]
+    }
+
+    r = requests.post(
+        url,
+        headers=HEADERS,
+        json=payload,
+        verify=False
+    )
+
+    print("IdentityPicker Status :", r.status_code)
+
+    if r.status_code != 200:
+        print(r.text)
+        return None
+
+    data = r.json()
+
+    if "results" not in data:
+        return None
+
+    if len(data["results"]) == 0:
+        return None
+
+    identities = data["results"][0].get("identities", [])
+
+    if len(identities) == 0:
+        return None
+
+    user = identities[0]
+
+    print("User Found :", user.get("displayName"))
+
+    return user
+
+
+def get_group(project_name, group_name):
+
+    print("\nReading Project Groups...")
+
+    url = f"{BASE_URL}/_api/_identity/ReadScopedApplicationGroupsJson"
+
+    params = {
+        "_v": 5
+    }
+
+    r = requests.get(
+        url,
+        headers=HEADERS,
+        params=params,
+        verify=False
+    )
+
+    print("Groups API :", r.status_code)
+
+    if r.status_code != 200:
+        print(r.text)
+        return None
+
+    data = r.json()
+
+    groups = data.get("identities", [])
+
+    print(f"Total Groups : {len(groups)}")
+
+    for group in groups:
+
+        friendly = group.get("FriendlyDisplayName", "")
+        display = group.get("DisplayName", "")
+
+        if group_name.lower() in friendly.lower():
+
+            print("Matched :", friendly)
+
+            return group.get("TeamFoundationId")
+
+        if group_name.lower() in display.lower():
+
+            print("Matched :", display)
+
+            return group.get("TeamFoundationId")
+
+    print("\nAvailable Groups\n")
+
+    for group in groups:
+        print(group.get("FriendlyDisplayName"))
+
+    return None
