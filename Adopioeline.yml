@@ -1,0 +1,44 @@
+trigger: none
+pr: none
+
+parameters:
+- name: projectName
+  type: string
+  displayName: "Project Name"
+
+- name: groupName
+  type: string
+  displayName: "Group Name"
+
+- name: psids
+  type: string
+  displayName: "PSIDs (comma separated)"
+
+pool:
+  name: YourAgentPool
+
+variables:
+- group: onboarding-tool-secrets
+
+steps:
+
+- task: UsePythonVersion@0
+  inputs:
+    versionSpec: '3.x'
+
+- script: |
+    python -m pip install --upgrade pip
+    pip install requests
+  displayName: Install Python Packages
+
+- script: |
+    python add_users.py ^
+      --url "$(ADO_URL)" ^
+      --pat "$(PAT)" ^
+      --project "${{ parameters.projectName }}" ^
+      --group "${{ parameters.groupName }}" ^
+      --psids "${{ parameters.psids }}"
+  displayName: Add Users
+
+- publish: report.csv
+  artifact: UserAddReport
